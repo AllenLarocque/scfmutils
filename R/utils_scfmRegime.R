@@ -116,7 +116,7 @@ calcZonalRegimePars <- function(polygonID, firePolys, firePoints, epochLength, m
   }
 
   ## override maximum fire size if user supplied
-  if (!is.na(targetMaxFireSize) || is.null(targetMaxFireSize)) {
+  if (!is.na(targetMaxFireSize) && !is.null(targetMaxFireSize)) {
     emfs_ha <- targetMaxFireSize
     xMax <- targetMaxFireSize
     ## TODO: add check that max is larger than mean, else stop
