@@ -15,8 +15,6 @@
 #'
 #' @rdname ratioPartition
 ratioPartition <- function(targetBurnRate, empiricalBurnRate, pEscape, xBar, rate) {
-  browser()
-
   ratio <- targetBurnRate / empiricalBurnRate
 
   ## How do I partition this 'ratio' among 3 processes: same increase in all processes for now.
