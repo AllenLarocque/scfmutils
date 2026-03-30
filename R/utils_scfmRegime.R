@@ -21,7 +21,7 @@
 #' @export
 calcZonalRegimePars <- function(polygonID, firePolys, firePoints, epochLength, maxSizeFactor,
                                 fireSizeColumnName, targetBurnRate = NULL,
-                                targetMaxFireSize = NULL) {
+                                targetMaxFireSize = NULL, fireMultiplier = NULL) {
   firePoly <- firePolys[firePolys$PolyID == polygonID, ]
   landAttr <- as.data.table(firePoly)
   landAttr <- unique(landAttr[, .SD, .SDcol = setdiff(colnames(firePoly), "geometry")])
@@ -98,31 +98,25 @@ calcZonalRegimePars <- function(polygonID, firePolys, firePoints, epochLength, m
 
   empiricalBurnRate <- sum(polyPoints[[fireSizeColumnName]]) / (epochLength * landAttr$burnyArea)
 
-  if (is.na(targetBurnRate) || is.null(targetBurnRate)) {
-    ratio <- 1
+  ## Derive targetBurnRate from fireMultiplier when appropriate
+  ## Priority: explicit targetBurnRate > fireMultiplier > no adjustment
+  if ((is.na(targetBurnRate) || is.null(targetBurnRate)) &&
+      !is.null(fireMultiplier) && fireMultiplier != 1) {
+    targetBurnRate <- empiricalBurnRate * fireMultiplier
   }
-
-  if (!is.na(targetBurnRate) || is.null(targetBurnRate)) {
-    ratio <- targetBurnRate / empiricalBurnRate
-    if (ratio >= 1) {
-      newFireValues <- ratioPartition2(
-        targetBurnRate = targetBurnRate,
-        empiricalBurnRate = empiricalBurnRate,
-        pEscape = pEscape,
-        xBar = xBar,
-        rate = ignitionRate
-      )
-      ignitionRate <- newFireValues$rate
-      pEscape <- newFireValues$pEscape
-      xBar <- newFireValues$xBar
-    } else {
-      ## TODO: improve messaging for users
-      warning("ratio cannot be < 1. Please make sure this does not happen.")
-    }
+  if (!is.na(targetBurnRate) && !is.null(targetBurnRate)) {
+    newFireValues <- ratioPartition2(targetBurnRate = targetBurnRate,
+                                     empiricalBurnRate = empiricalBurnRate,
+                                     pEscape = pEscape,
+                                     xBar = xBar,
+                                     rate = ignitionRate)
+    ignitionRate <- newFireValues$rate
+    pEscape <- newFireValues$pEscape
+    xBar <- newFireValues$xBar
   }
 
   ## override maximum fire size if user supplied
-  if (!is.na(targetMaxFireSize) || is.null(targetMaxFireSize)) {
+  if (!is.na(targetMaxFireSize) && !is.null(targetMaxFireSize)) {
     emfs_ha <- targetMaxFireSize
     xMax <- targetMaxFireSize
     ## TODO: add check that max is larger than mean, else stop

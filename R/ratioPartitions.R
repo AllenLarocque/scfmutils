@@ -15,8 +15,6 @@
 #'
 #' @rdname ratioPartition
 ratioPartition <- function(targetBurnRate, empiricalBurnRate, pEscape, xBar, rate) {
-  browser()
-
   ratio <- targetBurnRate / empiricalBurnRate
 
   ## How do I partition this 'ratio' among 3 processes: same increase in all processes for now.
@@ -70,10 +68,10 @@ ratioPartition <- function(targetBurnRate, empiricalBurnRate, pEscape, xBar, rat
 
 #' @export
 #' @rdname ratioPartition
-ratioPartition2 <- function(targetBurnRate, empiricalBurnRate, pEscape, xBar, rate) {
-  ratio <-  targetBurnRate / empiricalBurnRate
+#ratioPartition2 <- function(targetBurnRate, empiricalBurnRate, pEscape, xBar, rate) {
+#  ratio <-  targetBurnRate / empiricalBurnRate
 
-  remains <- ratio
+#  remains <- ratio
   #
   #   step <- function(remains){
   #     step = min(remains, 2)
@@ -98,35 +96,128 @@ ratioPartition2 <- function(targetBurnRate, empiricalBurnRate, pEscape, xBar, ra
   #   xBar = xBar  #mean fire size
   # ))
   # }
+#   step <- min(remains, 2)
+#   pEscape <- pEscape * step
+#   remains <- remains / step
+#   step <- min(remains, 2)
+#   xBar <- xBar * step
+#   remains <- remains / step
+#   step <- min(remains, 2)
+#   pEscape <- pEscape * step
+#   remains <- remains/step
+#   step <- min(remains, 2)
+#   xBar <- xBar * step
+#   remains <- remains / step
+#   step <- min(remains, 2)
+#   rate <- rate  * step
+#   remains <- remains / step
+#   xBar <- xBar * remains
 
-  step <- min(remains, 2)
-  #peEscape can't exceed 1
-  newEscape <- pmin(pEscape * step, 1)
-  step <- pmin(step, newEscape/pEscape)
-  pEscape <- newEscape
+#   return(list(
+#     rate = rate,
+#     pEscape = pEscape,
+#     xBar = xBar  #mean fire size
+#   ))
+# }
 
-  remains <- remains/step
-  step <- min(remains, 2)
+
+#' @export
+#' @rdname ratioPartition
+ratioPartition2 <- function(targetBurnRate, empiricalBurnRate, pEscape, xBar, rate) {
+  ratio <- targetBurnRate / empiricalBurnRate
+  remains <- ratio
+  # This kees the older logic above of assigning to pEscape first.
+  # Probably does not reflect error structure wrong when scaling down. Maybe ratioPartion3() is better?
+  # When ratio > 1: scale params up. step = min(remains, 2) caps growth per step.
+  # When ratio < 1: scale params down. step = max(remains, 0.5) avoids tiny steps.
+  # When ratio = 1: remains = 1, step = 1, no change.
+  minMax <- if (remains > 1) min else max
+  stepBound <- if (remains > 1) 2 else 0.5
+
+  step <- minMax(remains, stepBound)
+  pEscape <- pEscape * step
+  remains <- remains / step
+
+  step <- minMax(remains, stepBound)
   xBar <- xBar * step
   remains <- remains / step
-  step <- min(remains, 2)
 
-  newEscape <- pmin(pEscape * step, 1)
-  step <- pmin(step, newEscape/pEscape)
-  pEscape <- newEscape
-
+  step <- minMax(remains, stepBound)
+  pEscape <- pEscape * step
   remains <- remains / step
-  step <- min(remains, 2)
+
+  step <- minMax(remains, stepBound)
   xBar <- xBar * step
   remains <- remains / step
-  step <- min(remains, 2)
-  rate <- rate  * step
+
+  step <- minMax(remains, stepBound)
+  rate <- rate * step
   remains <- remains / step
+
+  # Final remainder goes to xBar
   xBar <- xBar * remains
 
-  return(list(
-    rate = rate,
-    pEscape = pEscape,
-    xBar = xBar  #mean fire size
-  ))
+  # Enforce pEscape <= 1: redistribute excess to rate and xBar
+  if (pEscape > 1) {
+    scale <- sqrt(pEscape)
+    rate <- rate * scale
+    xBar <- xBar * scale
+    pEscape <- 1
+  }
+
+  list(rate = rate, pEscape = pEscape, xBar = xBar)
+}
+
+#' Adjust fire regime parameters to match a target burn rate.
+#'
+#' Burn rate is proportional to rate × pEscape × xBar. To change burn rate by
+#' factor r = target/empirical, we scale these three parameters multiplicatively.
+#' We partition the change equally across all three, subject to pEscape ≤ 1.
+#' This should be tolerant to targetBurnRate=0; empiricalBurnRate=0; pEscape=0; xBar=0; rate=0.
+#' 
+#' @param targetBurnRate Desired burn rate (area per ha per year).
+#' @param empiricalBurnRate Current burn rate from data/model.
+#' @param pEscape Escape probability (proportion of fires that grow beyond 1 cell).
+#' @param xBar Mean fire size of escaped fires.
+#' @param rate Ignition rate (fires per ha per year).
+#'
+#' @return List with adjusted rate, pEscape, xBar.
+#'
+#' @export
+#' @rdname ratioPartition
+ratioPartition3 <- function(targetBurnRate, empiricalBurnRate, pEscape, xBar, rate) {
+  # ---- Step 1: Compute target ratio ----
+  # r > 1: need higher burn rate → scale params up
+  # r < 1: need lower burn rate → scale params down
+  # r = 1: no change
+  r <- targetBurnRate / empiricalBurnRate
+
+  # ---- Step 2: Equal multiplicative partition ----
+  # Ideal: scale each of (rate, pEscape, xBar) by s = r^(1/3)
+  # Then product scales by s³ = r, as required.
+  s <- r^(1 / 3)
+
+  # ---- Step 3: Enforce pEscape ≤ 1 ----
+  # If s * pEscape would exceed 1, cap pEscape at 1 and put the remaining
+  # change into rate and xBar. We need:
+  #   rate' * pEscape' * xBar' = r * rate * pEscape * xBar
+  # With pEscape' = 1:  rate' * xBar' = r * rate * pEscape * xBar
+  # Equal partition for rate and xBar: each scales by t = (r * pEscape)^(1/2)
+  if (empiricalBurnRate <= 0) {
+    stop("empiricalBurnRate must be positive")
+  }
+  if (s * pEscape <= 1) {
+    # No constraint hit: apply s to all three
+    pEscapeNew <- pEscape * s
+    rateNew    <- rate * s
+    xBarNew    <- xBar * s
+  } else {
+    # pEscape capped at 1; remaining ratio r * pEscape split between rate and xBar
+    t <- (r * pEscape)^(1 / 2)
+    pEscapeNew <- 1
+    rateNew    <- rate * t
+    xBarNew    <- xBar * t
+  }
+
+  list(rate = rateNew, pEscape = pEscapeNew, xBar = xBarNew)
 }
