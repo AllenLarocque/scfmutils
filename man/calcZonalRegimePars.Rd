@@ -12,25 +12,46 @@ calcZonalRegimePars(
   maxSizeFactor,
   fireSizeColumnName,
   targetBurnRate = NULL,
-  targetMaxFireSize = NULL
+  targetMaxFireSize = NULL,
+  fireMultiplier = 1,
+  fireMultiplierMethod = "weighted",
+  fireMultiplierWeights = c(ignition = 0.3, escape = 0.4, size = 0.3),
+  scaleMaxFireSize = FALSE
 )
 }
 \arguments{
-\item{polygonID}{TODO}
+\item{polygonID}{character. \code{PolyID} of the polygon to estimate.}
 
-\item{firePolys}{TODO}
+\item{firePolys}{fire regime polygons (\code{sf} or \code{data.frame}) with columns \code{PolyID}, \code{cellSize}
+(ha), and \code{burnyArea} (burnable area, ha).}
 
-\item{firePoints}{TODO}
+\item{firePoints}{fire points (\code{sf} or \code{data.frame}) with a \code{PolyID} column and a fire size column.}
 
-\item{epochLength}{TODO}
+\item{epochLength}{numeric. Number of years covered by \code{firePoints}.}
 
-\item{maxSizeFactor}{TODO}
+\item{maxSizeFactor}{numeric. Factor applied to the largest observed fire to give the maximum
+fire size when the Hannon-Dahiya estimate fails.}
 
-\item{fireSizeColumnName}{TODO}
+\item{fireSizeColumnName}{character. Name of the fire size column (ha) in \code{firePoints}.}
 
-\item{targetBurnRate}{TODO}
+\item{targetBurnRate}{named numeric, by \code{PolyID}. Burn rate (proportion of \code{burnyArea} burned
+per year) to use instead of the empirical one. \code{NA} for none.
+Partitioned with \code{\link[=ratioPartition2]{ratioPartition2()}}; targets below the empirical burn rate are ignored,
+with a warning. Takes priority over \code{fireMultiplier}.}
 
-\item{targetMaxFireSize}{TODO}
+\item{targetMaxFireSize}{named numeric, by \code{PolyID}. Maximum fire size (ha) to use instead of
+the estimated one. \code{NA} for none. Takes priority over \code{scaleMaxFireSize}.}
+
+\item{fireMultiplier}{numeric. Factor by which to change the empirical burn rate
+(e.g. 2 doubles it); 0 means no fire. Partitioned among ignition rate, escape probability, and
+mean fire size by \code{\link[=partitionBurnRateMultiplier]{partitionBurnRateMultiplier()}}. The default (1) changes nothing.}
+
+\item{fireMultiplierMethod}{character. \code{method} passed to \code{\link[=partitionBurnRateMultiplier]{partitionBurnRateMultiplier()}}.}
+
+\item{fireMultiplierWeights}{named numeric. \code{weights} passed to \code{\link[=partitionBurnRateMultiplier]{partitionBurnRateMultiplier()}}.}
+
+\item{scaleMaxFireSize}{logical. If \code{TRUE}, the maximum fire size (\code{xMax}, \code{emfs_ha}) is scaled
+by the same factor as mean fire size when \code{fireMultiplier} is applied.}
 }
 \value{
 list containing the following elements and their values:
@@ -43,5 +64,8 @@ list containing the following elements and their values:
 \code{empiricalBurnRate} (empirical burn rate)
 }
 \description{
-\code{scfmRegime}: \code{calcZonalRegimePars}
+Estimates the fire regime parameters of one fire regime polygon from historical fire points.
+}
+\seealso{
+\code{\link[=partitionBurnRateMultiplier]{partitionBurnRateMultiplier()}}
 }

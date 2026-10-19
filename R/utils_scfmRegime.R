@@ -1,13 +1,30 @@
 #' `scfmRegime`: `calcZonalRegimePars`
 #'
-#' @param polygonID TODO
-#' @param firePolys TODO
-#' @param firePoints TODO
-#' @param epochLength TODO
-#' @param maxSizeFactor TODO
-#' @param fireSizeColumnName TODO
-#' @param targetBurnRate TODO
-#' @param targetMaxFireSize TODO
+#' Estimates the fire regime parameters of one fire regime polygon from historical fire points.
+#'
+#' @param polygonID character. `PolyID` of the polygon to estimate.
+#' @param firePolys fire regime polygons (`sf` or `data.frame`) with columns `PolyID`, `cellSize`
+#'   (ha), and `burnyArea` (burnable area, ha).
+#' @param firePoints fire points (`sf` or `data.frame`) with a `PolyID` column and a fire size column.
+#' @param epochLength numeric. Number of years covered by `firePoints`.
+#' @param maxSizeFactor numeric. Factor applied to the largest observed fire to give the maximum
+#'   fire size when the Hannon-Dahiya estimate fails.
+#' @param fireSizeColumnName character. Name of the fire size column (ha) in `firePoints`.
+#' @param targetBurnRate named numeric, by `PolyID`. Burn rate (proportion of `burnyArea` burned
+#'   per year) to use instead of the empirical one. `NA` for none.
+#'   Partitioned with [ratioPartition2()]; targets below the empirical burn rate are ignored,
+#'   with a warning. Takes priority over `fireMultiplier`.
+#' @param targetMaxFireSize named numeric, by `PolyID`. Maximum fire size (ha) to use instead of
+#'   the estimated one. `NA` for none. Takes priority over `scaleMaxFireSize`.
+#' @param fireMultiplier numeric. Factor by which to change the empirical burn rate
+#'   (e.g. 2 doubles it); 0 means no fire. Partitioned among ignition rate, escape probability, and
+#'   mean fire size by [partitionBurnRateMultiplier()]. The default (1) changes nothing.
+#' @param fireMultiplierMethod character. `method` passed to [partitionBurnRateMultiplier()].
+#' @param fireMultiplierWeights named numeric. `weights` passed to [partitionBurnRateMultiplier()].
+#' @param scaleMaxFireSize logical. If `TRUE`, the maximum fire size (`xMax`, `emfs_ha`) is scaled
+#'   by the same factor as mean fire size when `fireMultiplier` is applied.
+#'
+#' @seealso [partitionBurnRateMultiplier()]
 #'
 #' @returns list containing the following elements and their values:
 #'  `ignitionRate` (ignition rate),
@@ -21,7 +38,10 @@
 #' @export
 calcZonalRegimePars <- function(polygonID, firePolys, firePoints, epochLength, maxSizeFactor,
                                 fireSizeColumnName, targetBurnRate = NULL,
-                                targetMaxFireSize = NULL) {
+                                targetMaxFireSize = NULL, fireMultiplier = 1,
+                                fireMultiplierMethod = "weighted",
+                                fireMultiplierWeights = c(ignition = 0.3, escape = 0.4, size = 0.3),
+                                scaleMaxFireSize = FALSE) {
   firePoly <- firePolys[firePolys$PolyID == polygonID, ]
   landAttr <- as.data.table(firePoly)
   landAttr <- unique(landAttr[, .SD, .SDcol = setdiff(colnames(firePoly), "geometry")])
@@ -118,6 +138,28 @@ calcZonalRegimePars <- function(polygonID, firePolys, firePoints, epochLength, m
     } else {
       ## TODO: improve messaging for users
       warning("ratio cannot be < 1. Please make sure this does not happen.")
+    }
+  }
+
+  if (!isTRUE(fireMultiplier == 1)) {
+    if (!is.na(targetBurnRate)) {
+      message("fireMultiplier is ignored in polygon ", polygonID, " because targetBurnRate is set.")
+    } else {
+      newFireValues <- partitionBurnRateMultiplier(
+        multiplier = fireMultiplier,
+        ignitionRate = ignitionRate,
+        pEscape = pEscape,
+        meanFireSize = xBar,
+        method = fireMultiplierMethod,
+        weights = fireMultiplierWeights
+      )
+      ignitionRate <- newFireValues$ignitionRate
+      pEscape <- newFireValues$pEscape
+      xBar <- newFireValues$meanFireSize
+      if (isTRUE(scaleMaxFireSize)) {
+        emfs_ha <- emfs_ha * newFireValues$sizeFactor
+        xMax <- xMax * newFireValues$sizeFactor
+      }
     }
   }
 
