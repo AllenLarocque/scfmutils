@@ -5,8 +5,9 @@
 * scfmutils now needs R >= 4.4 (was 4.2), the oldest R version its checks run on (#19).
 
 - new function `partitionBurnRateMultiplier()` splits a change in burn rate among ignition rate,
-  escape probability, and mean fire size, using weights (default `c(ignition = 0.3, escape = 0.4,
-  size = 0.3)`) or the stepwise scheme of `ratioPartition2()`; a multiplier of 0 means no fire;
+  escape probability, and mean fire size, using weights (default: an equal split, which is
+  expected to differ among regions) or the stepwise scheme of `ratioPartition2()`; a multiplier of
+  0 means no fire;
 - `calcZonalRegimePars()` gets new arguments `fireMultiplier`, `fireMultiplierMethod`,
   `fireMultiplierWeights`, and `scaleMaxFireSize`. The defaults change nothing, and
   `targetBurnRate` keeps its previous behaviour and priority;

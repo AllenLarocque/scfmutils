@@ -15,7 +15,7 @@ calcZonalRegimePars(
   targetMaxFireSize = NULL,
   fireMultiplier = 1,
   fireMultiplierMethod = "weighted",
-  fireMultiplierWeights = c(ignition = 0.3, escape = 0.4, size = 0.3),
+  fireMultiplierWeights = c(ignition = 1/3, escape = 1/3, size = 1/3),
   scaleMaxFireSize = FALSE
 )
 }

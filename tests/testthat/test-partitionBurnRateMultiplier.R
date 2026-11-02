@@ -38,9 +38,9 @@ test_that("weighted split changes the burn rate by exactly the multiplier", {
 
 test_that("default weights give the documented factors for a doubling", {
   out <- partitionBurnRateMultiplier(2, ignitionRate = 1, pEscape = 0.1, meanFireSize = 1)
-  expect_equal(out$ignitionRate, 2^0.3)
-  expect_equal(out$pEscape, 0.1 * 2^0.4)
-  expect_equal(out$meanFireSize, 2^0.3)
+  expect_equal(out$ignitionRate, 2^(1 / 3))
+  expect_equal(out$pEscape, 0.1 * 2^(1 / 3))
+  expect_equal(out$meanFireSize, 2^(1 / 3))
 })
 
 test_that("escape is capped at 1 and the excess goes to ignition and size by weight", {

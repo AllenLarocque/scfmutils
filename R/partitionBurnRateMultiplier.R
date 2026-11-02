@@ -9,8 +9,8 @@
 #' @section `method = "weighted"`:
 #' Each component is multiplied by `multiplier^weight`, using `weights`
 #' (a share of the change on the log scale for each component).
-#' With the default weights, a doubling (`multiplier = 2`) multiplies ignition rate by 1.23,
-#' escape probability by 1.32, and mean fire size by 1.23.
+#' With the default (equal) weights, a doubling (`multiplier = 2`) multiplies each component by
+#' `2^(1/3)`, about 1.26.
 #' Weights below 1 for a component damp its change; a weight of 0 leaves it unchanged.
 #'
 #' Escape probability cannot exceed 1. If it would, it is set to 1 and the rest of its factor is
@@ -39,8 +39,9 @@
 #' @param method character. `"weighted"` (default) or `"stepwise"`; see the sections below.
 #' @param weights named numeric. For `method = "weighted"`, the share of the change given to each
 #'   component; names `ignition`, `escape`, and `size`, in any order, non-negative, summing to 1.
-#'   The default is a modelling choice, not a published estimate: it gives escape slightly more
-#'   weight than ignition and size. Treat the weights as a parameter for sensitivity analysis.
+#'   The default, an equal split, is a neutral modelling choice, not a published estimate.
+#'   The split is expected to differ among regions and fire regimes, so treat the weights as a
+#'   parameter to set for the study area or to explore in sensitivity analysis.
 #'
 #' @returns a list with elements `ignitionRate`, `pEscape`, `meanFireSize` (the new values), and
 #'   `sizeFactor` (the factor applied to `meanFireSize`; 1 if it is unchanged).
@@ -53,7 +54,8 @@
 #'                             method = "stepwise")
 partitionBurnRateMultiplier <- function(multiplier, ignitionRate, pEscape, meanFireSize,
                                         method = c("weighted", "stepwise"),
-                                        weights = c(ignition = 0.3, escape = 0.4, size = 0.3)) {
+                                        weights = c(ignition = 1 / 3, escape = 1 / 3,
+                                                    size = 1 / 3)) {
   method <- match.arg(method)
 
   if (!is.numeric(multiplier) || length(multiplier) != 1 || !is.finite(multiplier) ||
