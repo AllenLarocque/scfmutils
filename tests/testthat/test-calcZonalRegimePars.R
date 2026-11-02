@@ -50,6 +50,16 @@ test_that("targetBurnRate takes priority over fireMultiplier", {
     "fireMultiplier is ignored"
   )
   expect_equal(out, .upstreamTargetBurnRate)
+
+  ## a target below the empirical burn rate is ignored too, so neither applies
+  expect_warning(
+    expect_message(
+      out <- .calcZonal(.zonalArgs(targetBurnRate = c("1" = 0.001), fireMultiplier = 3)),
+      "Neither targetBurnRate nor fireMultiplier is applied"
+    ),
+    "ratio cannot be < 1"
+  )
+  expect_equal(out, .upstreamDefault)
 })
 
 test_that("fireMultiplier scales the components via partitionBurnRateMultiplier()", {

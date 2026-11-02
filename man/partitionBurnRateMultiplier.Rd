@@ -26,8 +26,8 @@ partitionBurnRateMultiplier(
 
 \item{weights}{named numeric. For \code{method = "weighted"}, the share of the change given to each
 component; names \code{ignition}, \code{escape}, and \code{size}, in any order, non-negative, summing to 1.
-The default follows a national-scale reading of the literature that escape contributes
-slightly more than ignition and size to changes in area burned.}
+The default is a modelling choice, not a published estimate: it gives escape slightly more
+weight than ignition and size. Treat the weights as a parameter for sensitivity analysis.}
 }
 \value{
 a list with elements \code{ignitionRate}, \code{pEscape}, \code{meanFireSize} (the new values), and
@@ -57,8 +57,10 @@ still exact. If both of those weights are 0, the target cannot be reached and a 
 
 Uses \code{\link[=ratioPartition2]{ratioPartition2()}}, as \code{calcZonalRegimePars()} does for \code{targetBurnRate}:
 the components are multiplied in steps of up to 2, in the order escape, size, escape, size,
-ignition, and any remainder goes to mean fire size. Ignition rate therefore changes only when
-\code{multiplier > 16}. Below 1, the whole reduction is applied to escape probability.
+ignition, and any remainder goes to mean fire size. Escape probability is capped at 1, which
+shortens its steps, so ignition rate changes only when \code{multiplier > 4 * min(4, 1 / pEscape)}:
+above 16 when \code{pEscape <= 0.25}, and sooner for larger \code{pEscape} (above 8 when \code{pEscape = 0.5}).
+Below 1, the whole reduction is applied to escape probability.
 }
 
 \section{Special cases}{

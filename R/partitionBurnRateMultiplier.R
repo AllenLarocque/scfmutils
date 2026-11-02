@@ -20,8 +20,10 @@
 #' @section `method = "stepwise"`:
 #' Uses [ratioPartition2()], as `calcZonalRegimePars()` does for `targetBurnRate`:
 #' the components are multiplied in steps of up to 2, in the order escape, size, escape, size,
-#' ignition, and any remainder goes to mean fire size. Ignition rate therefore changes only when
-#' `multiplier > 16`. Below 1, the whole reduction is applied to escape probability.
+#' ignition, and any remainder goes to mean fire size. Escape probability is capped at 1, which
+#' shortens its steps, so ignition rate changes only when `multiplier > 4 * min(4, 1 / pEscape)`:
+#' above 16 when `pEscape <= 0.25`, and sooner for larger `pEscape` (above 8 when `pEscape = 0.5`).
+#' Below 1, the whole reduction is applied to escape probability.
 #'
 #' @section Special cases:
 #' - `multiplier = 1` returns the inputs unchanged.
@@ -37,8 +39,8 @@
 #' @param method character. `"weighted"` (default) or `"stepwise"`; see the sections below.
 #' @param weights named numeric. For `method = "weighted"`, the share of the change given to each
 #'   component; names `ignition`, `escape`, and `size`, in any order, non-negative, summing to 1.
-#'   The default follows a national-scale reading of the literature that escape contributes
-#'   slightly more than ignition and size to changes in area burned.
+#'   The default is a modelling choice, not a published estimate: it gives escape slightly more
+#'   weight than ignition and size. Treat the weights as a parameter for sensitivity analysis.
 #'
 #' @returns a list with elements `ignitionRate`, `pEscape`, `meanFireSize` (the new values), and
 #'   `sizeFactor` (the factor applied to `meanFireSize`; 1 if it is unchanged).

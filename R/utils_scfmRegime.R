@@ -143,7 +143,14 @@ calcZonalRegimePars <- function(polygonID, firePolys, firePoints, epochLength, m
 
   if (!isTRUE(fireMultiplier == 1)) {
     if (!is.na(targetBurnRate)) {
-      message("fireMultiplier is ignored in polygon ", polygonID, " because targetBurnRate is set.")
+      if (ratio >= 1) {
+        message("fireMultiplier is ignored in polygon ", polygonID,
+                " because targetBurnRate is set.")
+      } else {
+        message("Neither targetBurnRate nor fireMultiplier is applied in polygon ", polygonID,
+                ": targetBurnRate is below the empirical burn rate, and it takes priority over ",
+                "fireMultiplier.")
+      }
     } else {
       newFireValues <- partitionBurnRateMultiplier(
         multiplier = fireMultiplier,
