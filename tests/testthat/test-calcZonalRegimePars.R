@@ -109,3 +109,16 @@ test_that("fireMultiplier of 0 gives no fire", {
 test_that("negative fireMultiplier is rejected", {
   expect_error(.calcZonal(.zonalArgs(fireMultiplier = -1)), "multiplier")
 })
+
+test_that("NULL targets (the argument defaults) are treated as not set", {
+  expect_equal(.calcZonal(.zonalArgs(targetBurnRate = NULL, targetMaxFireSize = NULL)),
+               .upstreamDefault)
+  expect_equal(.calcZonal(.zonalArgs(targetBurnRate = NULL)), .upstreamDefault)
+  expect_equal(.calcZonal(.zonalArgs(targetMaxFireSize = NULL)), .upstreamDefault)
+  expect_equal(.calcZonal(.zonalArgs(targetBurnRate = NULL, targetMaxFireSize = c("1" = 50000))),
+               .upstreamTargetMaxFireSize)
+})
+
+test_that("targets not named for the polygon are treated as not set", {
+  expect_equal(.calcZonal(.zonalArgs(targetBurnRate = c("2" = 0.03))), .upstreamDefault)
+})

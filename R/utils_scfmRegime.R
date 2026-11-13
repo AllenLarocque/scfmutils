@@ -64,6 +64,9 @@ calcZonalRegimePars <- function(polygonID, firePolys, firePoints, epochLength, m
   ## check for user supplied defaults
   targetBurnRate <- targetBurnRate[polygonID]
   targetMaxFireSize <- targetMaxFireSize[polygonID]
+  ## NULL (none supplied) is treated as NA
+  if (is.null(targetBurnRate)) targetBurnRate <- NA
+  if (is.null(targetMaxFireSize)) targetMaxFireSize <- NA
 
   if (nFires > 0) {
     ## calculate escaped fires; careful to subtract cellSize where appropriate
@@ -119,11 +122,11 @@ calcZonalRegimePars <- function(polygonID, firePolys, firePoints, epochLength, m
 
   empiricalBurnRate <- sum(polyPoints[[fireSizeColumnName]]) / (epochLength * landAttr$burnyArea)
 
-  if (is.na(targetBurnRate) || is.null(targetBurnRate)) {
+  if (is.na(targetBurnRate)) {
     ratio <- 1
   }
 
-  if (!is.na(targetBurnRate) || is.null(targetBurnRate)) {
+  if (!is.na(targetBurnRate)) {
     ratio <- targetBurnRate / empiricalBurnRate
     if (ratio >= 1) {
       newFireValues <- ratioPartition2(
@@ -172,7 +175,7 @@ calcZonalRegimePars <- function(polygonID, firePolys, firePoints, epochLength, m
   }
 
   ## override maximum fire size if user supplied
-  if (!is.na(targetMaxFireSize) || is.null(targetMaxFireSize)) {
+  if (!is.na(targetMaxFireSize)) {
     emfs_ha <- targetMaxFireSize
     xMax <- targetMaxFireSize
     ## TODO: add check that max is larger than mean, else stop

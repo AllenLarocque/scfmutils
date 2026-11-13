@@ -12,6 +12,11 @@
   `fireMultiplierWeights`, and `scaleMaxFireSize`. The defaults change nothing, and
   `targetBurnRate` keeps its previous behaviour and priority;
 - document the arguments of `calcZonalRegimePars()`;
+- `calcZonalRegimePars()` treats `targetBurnRate = NULL` and `targetMaxFireSize = NULL` (the argument
+  defaults) as not set. Previously `targetBurnRate = NULL` gave the error "argument is of length zero",
+  and `targetMaxFireSize = NULL` silently dropped `xMax` and `emfs_ha` from the output.
+  The silent drop came in with 94d70c6 (2024), which changed the guards from `|` to `||`: a NULL
+  target had given an error before that. Results for `NA` or numeric targets are unchanged;
 - `calibrateFireRegimePolys()`: when no spread probability in the calibration range gives a
   polygon's mean fire size, it now uses the end of the range whose fitted size is closer, not always
   the bottom of the range. A polygon whose mean fire size was just above the range got the lowest
