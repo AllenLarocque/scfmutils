@@ -14,7 +14,9 @@
 
 ## as the modules call it: lapply over unique(PolyID); returns one row per polygon
 .ppRun <- function(...) {
-  args <- modifyList(.ppArgs(), list(...))
+  dots <- list(...)
+  args <- .ppArgs()
+  args[names(dots)] <- dots # replace whole arguments (modifyList() would merge data.frame columns)
   out <- withCallingHandlers(
     lapply(unique(args$firePolys$PolyID), function(id) {
       do.call(calcZonalRegimePars, c(list(polygonID = id), args))
@@ -77,6 +79,52 @@ test_that("an sf or data.table table works like a data.frame", {
   ref <- .ppRun(fireMultiplier = data.frame(ecoregion = c("A", "B"), fireMultiplier = c(2, 1)))
   dt <- .ppRun(fireMultiplier = data.table::data.table(ecoregion = c("A", "B"), fireMultiplier = c(2, 1)))
   expect_equal(dt, ref)
+  pts <- sf::st_sfc(sf::st_point(c(0, 0)), sf::st_point(c(1, 1)))
+  sfTab <- sf::st_sf(ecoregion = c("A", "B"), fireMultiplier = c(2, 1), geometry = pts)
+  expect_equal(.ppRun(fireMultiplier = sfTab), ref)
+  ## a geometry column with another name
+  sfTab2 <- sf::st_sf(ecoregion = c("A", "B"), fireMultiplier = c(2, 1), shape = pts)
+  expect_equal(.ppRun(fireMultiplier = sfTab2), ref)
+})
+
+test_that("an ordinary column called geometry can be the key", {
+  args <- .ppArgs()
+  args$firePolys$geometry <- args$firePolys$ecoregion
+  ref <- .ppRun(fireMultiplier = data.frame(ecoregion = c("A", "B"), fireMultiplier = c(2, 1)))
+  out <- do.call(.ppRun, c(list(fireMultiplier = data.frame(geometry = c("A", "B"), fireMultiplier = c(2, 1))),
+                           args["firePolys"]))
+  expect_equal(out, ref)
+  ## and an extra ordinary column called geometry is an error, not silently dropped
+  expect_error(.ppRun(fireMultiplier = data.frame(ecoregion = "A", geometry = "x", fireMultiplier = 2)),
+               "one key column")
+})
+
+test_that("a polygon with several values of the key is an error", {
+  args <- .ppArgs()
+  args$firePolys <- rbind(args$firePolys, transform(args$firePolys[1, ], ecoregion = "C"))
+  expect_error(do.call(.ppRun, c(list(fireMultiplier = data.frame(ecoregion = "A", fireMultiplier = 2)),
+                                 args["firePolys"])),
+               "2 values of ecoregion")
+})
+
+test_that("targetBurnRate keeps priority over a per-polygon fireMultiplier", {
+  ## unnamed, so it is taken by position (2nd element -> PolyID 2 here) both before and after the
+  ## separate fix for named targets (fix/calcZonalRegimePars-target-names)
+  tbr <- c(NA, 0.03)
+  base <- .ppRun(targetBurnRate = tbr)
+  out <- expect_message(
+    .ppRun(targetBurnRate = tbr, fireMultiplier = data.frame(ecoregion = "A", fireMultiplier = 3)),
+    "fireMultiplier is ignored in polygon 2"
+  )
+  expect_equal(.row(out, 2L), .row(base, 2L))
+})
+
+test_that("scaleMaxFireSize works with a per-polygon fireMultiplier", {
+  x2 <- .ppRun(fireMultiplier = 2, scaleMaxFireSize = TRUE)
+  out <- .ppRun(fireMultiplier = data.frame(ecoregion = c("A", "B"), fireMultiplier = c(2, 1)),
+                scaleMaxFireSize = TRUE)
+  expect_equal(.row(out, 5L), .row(x2, 5L))
+  expect_equal(.row(out, 7L), .row(.ppRun(), 7L))
 })
 
 test_that("badly formed tables are errors", {

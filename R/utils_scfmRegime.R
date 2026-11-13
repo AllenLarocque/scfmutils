@@ -209,8 +209,9 @@ calcZonalRegimePars <- function(polygonID, firePolys, firePoints, epochLength, m
 ## not in the table gets `default`, with a message.
 .valueForPolygon <- function(x, firePoly, polygonID, argName, valueCols, default) {
   if (!is.data.frame(x)) return(x)
+  ## an sf table: drop its geometry column(s), whatever they are called; keep every other column
   x <- as.data.frame(x)
-  x <- x[, setdiff(names(x), c("geometry", attr(x, "sf_column"))), drop = FALSE]
+  x <- x[, !vapply(x, inherits, logical(1), what = "sfc"), drop = FALSE]
   keyCol <- setdiff(names(x), valueCols)
   if (length(keyCol) != 1 || !all(valueCols %in% names(x))) {
     stop("a `", argName, "` table needs one key column (PolyID, or another column of ",
