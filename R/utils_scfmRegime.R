@@ -19,8 +19,14 @@
 #' @param fireMultiplier numeric. Factor by which to change the empirical burn rate
 #'   (e.g. 2 doubles it); 0 means no fire. Partitioned among ignition rate, escape probability, and
 #'   mean fire size by [partitionBurnRateMultiplier()]. The default (1) changes nothing.
+#'   Either one number for every polygon, or a table (`data.frame`) with one row per polygon or
+#'   group of polygons: a key column, either `PolyID` or any other column of `firePolys` (e.g. an
+#'   eco-zone label shared by several polygons), and a `fireMultiplier` column. A polygon not in
+#'   the table gets 1, with a message.
 #' @param fireMultiplierMethod character. `method` passed to [partitionBurnRateMultiplier()].
 #' @param fireMultiplierWeights named numeric. `weights` passed to [partitionBurnRateMultiplier()].
+#'   Or a table like `fireMultiplier`'s, with a key column and columns `ignition`, `escape` and
+#'   `size`. A polygon not in the table gets equal weights, with a message.
 #' @param scaleMaxFireSize logical. If `TRUE`, the maximum fire size (`xMax`, `emfs_ha`) is scaled
 #'   by the same factor as mean fire size when `fireMultiplier` is applied.
 #'
@@ -44,6 +50,12 @@ calcZonalRegimePars <- function(polygonID, firePolys, firePoints, epochLength, m
                                                           size = 1 / 3),
                                 scaleMaxFireSize = FALSE) {
   firePoly <- firePolys[firePolys$PolyID == polygonID, ]
+  fireMultiplier <- .valueForPolygon(fireMultiplier, firePoly, polygonID, "fireMultiplier",
+                                     valueCols = "fireMultiplier", default = 1)
+  fireMultiplierWeights <- .valueForPolygon(fireMultiplierWeights, firePoly, polygonID,
+                                            "fireMultiplierWeights",
+                                            valueCols = c("ignition", "escape", "size"),
+                                            default = c(ignition = 1 / 3, escape = 1 / 3, size = 1 / 3))
   landAttr <- as.data.table(firePoly)
   landAttr <- unique(landAttr[, .SD, .SDcol = setdiff(colnames(firePoly), "geometry")])
   polyPoints <- firePoints[firePoints$PolyID == as.numeric(polygonID), ]
@@ -189,4 +201,37 @@ calcZonalRegimePars <- function(polygonID, firePolys, firePoints, epochLength, m
   ## xMax - maximum observed size; emfs_ha - Estimated maximum Fire Size in ha
   ## max fire size is returned twice - I think this is a backwards compatibility decision
   return(paramData)
+}
+
+## The value of a per-polygon parameter for one polygon. `x` is either a value for every polygon
+## (returned as is) or a table: one key column (`PolyID`, or another column of `firePolys`) and the
+## `valueCols`. Keys are matched by value, so any PolyID numbering works. A polygon whose key is
+## not in the table gets `default`, with a message.
+.valueForPolygon <- function(x, firePoly, polygonID, argName, valueCols, default) {
+  if (!is.data.frame(x)) return(x)
+  x <- as.data.frame(x)
+  x <- x[, setdiff(names(x), c("geometry", attr(x, "sf_column"))), drop = FALSE]
+  keyCol <- setdiff(names(x), valueCols)
+  if (length(keyCol) != 1 || !all(valueCols %in% names(x))) {
+    stop("a `", argName, "` table needs one key column (PolyID, or another column of ",
+         "`firePolys`) and the column(s) ", paste(valueCols, collapse = ", "))
+  }
+  if (!keyCol %in% names(firePoly)) {
+    stop("`", argName, "` is keyed by '", keyCol, "', which is not a column of `firePolys`")
+  }
+  if (anyDuplicated(x[[keyCol]])) {
+    stop("`", argName, "` has a ", keyCol, " more than once")
+  }
+  key <- unique(as.data.frame(firePoly)[[keyCol]])
+  if (length(key) != 1) {
+    stop("polygon ", polygonID, " has ", length(key), " values of ", keyCol, " in `firePolys`")
+  }
+  row <- match(as.character(key), as.character(x[[keyCol]]))
+  if (is.na(row)) {
+    message("Polygon ", polygonID, " (", keyCol, " ", key, ") is not in `", argName,
+            "`; using the default (", paste(signif(default, 3), collapse = ", "), ").")
+    return(default)
+  }
+  if (length(valueCols) == 1) return(x[[valueCols]][row])
+  vapply(valueCols, function(v) as.numeric(x[[v]][row]), numeric(1))
 }

@@ -4,6 +4,10 @@
 
 * scfmutils now needs R >= 4.4 (was 4.2), the oldest R version its checks run on (#19).
 
+- `calcZonalRegimePars()`: `fireMultiplier` and `fireMultiplierWeights` can also be tables with
+  one row per polygon or group of polygons, keyed by `PolyID` or by any other column of
+  `firePolys` (e.g. an eco-zone label). Polygons not in the table get the defaults (1, equal
+  weights), with a message. A single value works as before;
 - new function `partitionBurnRateMultiplier()` splits a change in burn rate among ignition rate,
   escape probability, and mean fire size, using weights (default: an equal split, which is
   expected to differ among regions) or the stepwise scheme of `ratioPartition2()`; a multiplier of

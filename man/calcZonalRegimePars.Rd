@@ -44,11 +44,17 @@ the estimated one. \code{NA} for none. Takes priority over \code{scaleMaxFireSiz
 
 \item{fireMultiplier}{numeric. Factor by which to change the empirical burn rate
 (e.g. 2 doubles it); 0 means no fire. Partitioned among ignition rate, escape probability, and
-mean fire size by \code{\link[=partitionBurnRateMultiplier]{partitionBurnRateMultiplier()}}. The default (1) changes nothing.}
+mean fire size by \code{\link[=partitionBurnRateMultiplier]{partitionBurnRateMultiplier()}}. The default (1) changes nothing.
+Either one number for every polygon, or a table (\code{data.frame}) with one row per polygon or
+group of polygons: a key column, either \code{PolyID} or any other column of \code{firePolys} (e.g. an
+eco-zone label shared by several polygons), and a \code{fireMultiplier} column. A polygon not in
+the table gets 1, with a message.}
 
 \item{fireMultiplierMethod}{character. \code{method} passed to \code{\link[=partitionBurnRateMultiplier]{partitionBurnRateMultiplier()}}.}
 
-\item{fireMultiplierWeights}{named numeric. \code{weights} passed to \code{\link[=partitionBurnRateMultiplier]{partitionBurnRateMultiplier()}}.}
+\item{fireMultiplierWeights}{named numeric. \code{weights} passed to \code{\link[=partitionBurnRateMultiplier]{partitionBurnRateMultiplier()}}.
+Or a table like \code{fireMultiplier}'s, with a key column and columns \code{ignition}, \code{escape} and
+\code{size}. A polygon not in the table gets equal weights, with a message.}
 
 \item{scaleMaxFireSize}{logical. If \code{TRUE}, the maximum fire size (\code{xMax}, \code{emfs_ha}) is scaled
 by the same factor as mean fire size when \code{fireMultiplier} is applied.}
