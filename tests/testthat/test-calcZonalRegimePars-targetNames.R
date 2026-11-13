@@ -68,3 +68,12 @@ test_that("PolyIDs 1..n with targets named in that order give the same results a
   ref <- .runPolys(1:2, targetBurnRate = c(NA, 0.03), targetMaxFireSize = c(NA, 50000))
   expect_equal(out, ref)
 })
+
+test_that("partly named targets are still taken by position (unchanged behaviour)", {
+  out <- .runPolys(1:2, targetBurnRate = c("1" = NA, 0.03), targetMaxFireSize = c(NA, NA))
+  expect_equal(out[PolyID == 1]$pEscape, 0.25)
+  expect_equal(out[PolyID == 2]$pEscape, 0.5)
+  out <- .runPolys(1:2, targetBurnRate = c(NA, NA), targetMaxFireSize = c("1" = NA, 50000))
+  expect_equal(out[PolyID == 2]$emfs_ha, 50000)
+  expect_equal(out[PolyID == 1]$xMax, 30000)
+})

@@ -141,9 +141,11 @@ calcZonalRegimePars <- function(polygonID, firePolys, firePoints, epochLength, m
   return(paramData)
 }
 
-## The target of one polygon. A named vector is looked up by name (the PolyID), whatever the type of
-## `polygonID`: the modules pass an integer, which would otherwise index by position. An unnamed
-## vector (or NULL) is indexed by `polygonID` as before.
+## The target of one polygon. A vector named in full (every element named by its PolyID) is looked
+## up by name, whatever the type of `polygonID`: the modules pass an integer, which would otherwise
+## index by position. Any other vector (unnamed, partly named) or NULL is indexed by `polygonID` as
+## before.
 .targetForPolygon <- function(x, polygonID) {
-  if (is.null(names(x))) x[polygonID] else x[as.character(polygonID)]
+  nms <- names(x)
+  if (is.null(nms) || anyNA(nms) || any(!nzchar(nms))) x[polygonID] else x[as.character(polygonID)]
 }
