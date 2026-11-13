@@ -4,6 +4,11 @@
 
 * scfmutils now needs R >= 4.4 (was 4.2), the oldest R version its checks run on (#19).
 
+- `calcZonalRegimePars()`: `targetBurnRate` and `targetMaxFireSize` given as vectors named by
+  `PolyID` are now looked up by name. The modules pass `polygonID` as an integer, so the target was
+  taken by position: with PolyIDs other than 1, 2, ..., n in that order (e.g. after sliver merging,
+  or user PolyIDs), or names in another order, a polygon got another polygon's target, or none.
+  Results change only for runs hit by this; unnamed vectors are still taken by position;
 - `calibrateFireRegimePolys()`: when no spread probability in the calibration range gives a
   polygon's mean fire size, it now uses the end of the range whose fitted size is closer, not always
   the bottom of the range. A polygon whose mean fire size was just above the range got the lowest

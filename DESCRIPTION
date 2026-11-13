@@ -9,7 +9,7 @@ URL: https://scfmutils.predictiveecology.org,
     https://github.com/PredictiveEcology/scfmutils,
     https://predictiveecology.github.io/scfmutils/
 Date: 2026-10-19
-Version: 2.0.9.9010
+Version: 2.0.9.9011
 Authors@R: c(
     person("Steve", "Cumming", email = "Steve.Cumming@sbf.ulaval.ca",
            role = c("aut")),

@@ -41,8 +41,8 @@ calcZonalRegimePars <- function(polygonID, firePolys, firePoints, epochLength, m
   xVec <- numeric(0)
 
   ## check for user supplied defaults
-  targetBurnRate <- targetBurnRate[polygonID]
-  targetMaxFireSize <- targetMaxFireSize[polygonID]
+  targetBurnRate <- .targetForPolygon(targetBurnRate, polygonID)
+  targetMaxFireSize <- .targetForPolygon(targetMaxFireSize, polygonID)
 
   if (nFires > 0) {
     ## calculate escaped fires; careful to subtract cellSize where appropriate
@@ -139,4 +139,11 @@ calcZonalRegimePars <- function(polygonID, firePolys, firePoints, epochLength, m
   ## xMax - maximum observed size; emfs_ha - Estimated maximum Fire Size in ha
   ## max fire size is returned twice - I think this is a backwards compatibility decision
   return(paramData)
+}
+
+## The target of one polygon. A named vector is looked up by name (the PolyID), whatever the type of
+## `polygonID`: the modules pass an integer, which would otherwise index by position. An unnamed
+## vector (or NULL) is indexed by `polygonID` as before.
+.targetForPolygon <- function(x, polygonID) {
+  if (is.null(names(x))) x[polygonID] else x[as.character(polygonID)]
 }
